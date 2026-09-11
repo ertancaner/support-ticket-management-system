@@ -51,3 +51,5 @@ build/
 # Antigravity / AI Agent temporary data
 scratch/
 TODO.md
+.dotnet_home/
+[Ll]ibrary/

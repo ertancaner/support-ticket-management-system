@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using TicketManagement.Api.Configuration;
+using TicketManagement.Api.Data;
 using TicketManagement.Api.Extensions;
 using TicketManagement.Api.Middleware;
 
@@ -6,6 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configuration & Environment Variables
 builder.Configuration.AddEnvironmentVariables();
+
+// Database Context (PostgreSQL)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? throw new InvalidOperationException("DefaultConnection string was not found.");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Strongly-typed Settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
@@ -48,5 +57,8 @@ app.UseCors("DefaultCorsPolicy");
 // app.UseAuthorization();
 
 app.MapControllers();
+
+// Apply pending database migrations on startup
+await app.ApplyMigrationsAsync();
 
 app.Run();

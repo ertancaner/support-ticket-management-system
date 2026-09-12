@@ -26,10 +26,14 @@ public static class DatabaseMigrationExtensions
             {
                 logger.LogInformation("Database is up to date. No pending migrations.");
             }
+
+            // Seed initial administrator and default categories
+            var seeder = services.GetRequiredService<IDataSeeder>();
+            await seeder.SeedAsync();
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not apply database migrations at startup. Ensure PostgreSQL container is running.");
+            logger.LogWarning(ex, "Could not apply database migrations or seed data at startup. Ensure PostgreSQL container is running.");
         }
     }
 }

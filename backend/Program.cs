@@ -3,6 +3,10 @@ using TicketManagement.Api.Configuration;
 using TicketManagement.Api.Data;
 using TicketManagement.Api.Extensions;
 using TicketManagement.Api.Middleware;
+using TicketManagement.Api.Repositories;
+using TicketManagement.Api.Repositories.Interfaces;
+using TicketManagement.Api.Services;
+using TicketManagement.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +22,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Strongly-typed Settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+
+// Security & Password Hashing
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+
+// Repositories & Services
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Controller & API Pipeline
 builder.Services.AddControllers();

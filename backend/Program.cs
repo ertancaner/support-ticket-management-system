@@ -59,6 +59,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+// CSRF / Anti-Forgery Configuration
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN";
+    options.Cookie.HttpOnly = false;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
 var app = builder.Build();
 
 // Global Exception Handling & RFC 7807 ProblemDetails
@@ -69,6 +79,9 @@ app.UseSwaggerDocumentation();
 
 app.UseRouting();
 app.UseCors("DefaultCorsPolicy");
+
+// CSRF Protection on state-changing requests (POST, PUT, PATCH, DELETE)
+app.UseMiddleware<CsrfProtectionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

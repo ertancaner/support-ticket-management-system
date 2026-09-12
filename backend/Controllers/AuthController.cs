@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TicketManagement.Api.DTOs.Auth;
@@ -8,10 +9,24 @@ namespace TicketManagement.Api.Controllers;
 public class AuthController : BaseApiController
 {
     private readonly IAuthService _authService;
+    private readonly IAntiforgery _antiforgery;
+    private readonly IHostEnvironment _env;
 
-    public AuthController(IAuthService authService)
+    public AuthController(
+        IAuthService authService,
+        IAntiforgery antiforgery,
+        IHostEnvironment env)
     {
         _authService = authService;
+        _antiforgery = antiforgery;
+        _env = env;
+    }
+
+    [HttpGet("csrf-token")]
+    public ActionResult<CsrfTokenResponseDto> GetCsrfToken()
+    {
+        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+        return Ok(new CsrfTokenResponseDto { CsrfToken = tokens.RequestToken! });
     }
 
     [HttpPost("login")]

@@ -1,7 +1,9 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TicketManagement.Api.Configuration;
+using TicketManagement.Api.Data;
 using TicketManagement.Api.Services;
 
 namespace TicketManagement.Api.Extensions;
@@ -49,6 +51,35 @@ public static class AuthenticationExtensions
                         context.Token = token;
                     }
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async context =>
+                {
+                    var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                    var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    var tokenSessionVersion = context.Principal?.FindFirst("session_version")?.Value;
+
+                    if (!Guid.TryParse(userIdClaim, out var userId) || string.IsNullOrWhiteSpace(tokenSessionVersion))
+                    {
+                        context.Fail("Invalid authentication claims.");
+                        return;
+                    }
+
+                    // Enforce real-time session invalidation and active status check on protected requests
+                    var user = await dbContext.Users
+                        .AsNoTracking()
+                        .Select(u => new { u.Id, u.IsActive, u.SessionVersion })
+                        .FirstOrDefaultAsync(u => u.Id == userId);
+
+                    if (user == null || !user.IsActive)
+                    {
+                        context.Fail("User account does not exist or has been deactivated.");
+                        return;
+                    }
+
+                    if (user.SessionVersion.ToString() != tokenSessionVersion)
+                    {
+                        context.Fail("Session has been invalidated due to a security update or password change.");
+                    }
                 }
             };
         });

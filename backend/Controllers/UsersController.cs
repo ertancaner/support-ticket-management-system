@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TicketManagement.Api.DTOs.Users;
 using TicketManagement.Api.Exceptions;
@@ -5,6 +6,7 @@ using TicketManagement.Api.Services.Interfaces;
 
 namespace TicketManagement.Api.Controllers;
 
+[Authorize]
 public class UsersController : BaseApiController
 {
     private readonly IUserService _userService;
@@ -14,6 +16,7 @@ public class UsersController : BaseApiController
         _userService = userService;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<UserDto>>> GetUsers(CancellationToken cancellationToken)
     {
@@ -21,6 +24,7 @@ public class UsersController : BaseApiController
         return Ok(users);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<UserDto>> GetUserById(Guid id, CancellationToken cancellationToken)
     {
@@ -28,6 +32,7 @@ public class UsersController : BaseApiController
         return Ok(user);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<UserDto>> CreateUser(
         [FromBody] CreateUserRequestDto dto,
@@ -37,6 +42,7 @@ public class UsersController : BaseApiController
         return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/status")]
     public async Task<ActionResult<UserDto>> UpdateStatus(
         Guid id,
@@ -47,6 +53,7 @@ public class UsersController : BaseApiController
         return Ok(updatedUser);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("{id:guid}/reset-password")]
     public async Task<IActionResult> ResetPassword(
         Guid id,

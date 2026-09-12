@@ -23,14 +23,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Strongly-typed Settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 
-// Security & Password Hashing
+// Security & Token Services
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Repositories & Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+// JWT Authentication & Authorization
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Controller & API Pipeline
 builder.Services.AddControllers();
@@ -65,9 +70,8 @@ app.UseSwaggerDocumentation();
 app.UseRouting();
 app.UseCors("DefaultCorsPolicy");
 
-// Authentication & Authorization (will be populated in Auth phases)
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

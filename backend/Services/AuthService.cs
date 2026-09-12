@@ -5,6 +5,7 @@ using TicketManagement.Api.Configuration;
 using TicketManagement.Api.Data;
 using TicketManagement.Api.DTOs.Auth;
 using TicketManagement.Api.Entities;
+using TicketManagement.Api.Entities.Enums;
 using TicketManagement.Api.Exceptions;
 using TicketManagement.Api.Repositories.Interfaces;
 using TicketManagement.Api.Services.Interfaces;
@@ -16,6 +17,7 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
+    private readonly IAuditService _auditService;
     private readonly AppDbContext _context;
     private readonly JwtSettings _jwtSettings;
 
@@ -23,12 +25,14 @@ public class AuthService : IAuthService
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
+        IAuditService auditService,
         AppDbContext context,
         IOptions<JwtSettings> jwtOptions)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
+        _auditService = auditService;
         _context = context;
         _jwtSettings = jwtOptions.Value;
     }
@@ -78,6 +82,102 @@ public class AuthService : IAuthService
             Username = user.Username,
             Role = user.Role.ToString(),
             MustChangePassword = user.MustChangePassword
+        };
+    }
+
+    public async Task<AuthResponseDto> RefreshTokenAsync(HttpRequest request, HttpResponse response, CancellationToken cancellationToken = default)
+    {
+        if (!request.Cookies.TryGetValue(TokenService.RefreshTokenCookieName, out var plainRefreshToken) ||
+            string.IsNullOrWhiteSpace(plainRefreshToken))
+        {
+            throw new UnauthorizedException("Refresh token is missing.");
+        }
+
+        var tokenHash = _tokenService.HashToken(plainRefreshToken);
+        var token = await _context.RefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash, cancellationToken);
+
+        if (token == null)
+        {
+            _tokenService.ClearAuthCookies(response);
+            throw new UnauthorizedException("Invalid refresh token.");
+        }
+
+        // Automatic Reuse Detection: if an already revoked token is used, revoke the entire token family
+        if (token.IsRevoked)
+        {
+            var familyTokens = await _context.RefreshTokens
+                .Where(rt => rt.FamilyId == token.FamilyId && !rt.IsRevoked)
+                .ToListAsync(cancellationToken);
+
+            foreach (var familyToken in familyTokens)
+            {
+                familyToken.IsRevoked = true;
+                familyToken.RevokedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditService.LogAsync(
+                token.UserId,
+                AuditActionType.RefreshTokenReuseDetected,
+                nameof(RefreshToken),
+                token.Id.ToString(),
+                $"Potential replay attack detected! Revoked refresh token reused. All active tokens in family '{token.FamilyId}' were revoked.",
+                cancellationToken);
+
+            _tokenService.ClearAuthCookies(response);
+            throw new UnauthorizedException("Security violation: Refresh token reuse detected. All active sessions for this device have been revoked.");
+        }
+
+        if (token.IsExpired)
+        {
+            token.IsRevoked = true;
+            token.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _tokenService.ClearAuthCookies(response);
+            throw new UnauthorizedException("Refresh token has expired. Please log in again.");
+        }
+
+        if (!token.User.IsActive)
+        {
+            _tokenService.ClearAuthCookies(response);
+            throw new UnauthorizedException("Your account is deactivated. Please contact an administrator.");
+        }
+
+        // Revoke the used refresh token (Rotation)
+        token.IsRevoked = true;
+        token.RevokedAt = DateTime.UtcNow;
+
+        var newAccessToken = _tokenService.GenerateAccessToken(token.User);
+        var (newPlainRefreshToken, newRefreshTokenHash) = _tokenService.GenerateRefreshToken();
+
+        token.ReplacedByTokenHash = newRefreshTokenHash;
+
+        // Persist the new rotated token within the same token family
+        var newRefreshToken = new RefreshToken
+        {
+            UserId = token.UserId,
+            TokenHash = newRefreshTokenHash,
+            FamilyId = token.FamilyId,
+            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            IsRevoked = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _context.RefreshTokens.AddAsync(newRefreshToken, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _tokenService.AppendAuthCookies(response, newAccessToken, newPlainRefreshToken);
+
+        return new AuthResponseDto
+        {
+            Id = token.User.Id,
+            Username = token.User.Username,
+            Role = token.User.Role.ToString(),
+            MustChangePassword = token.User.MustChangePassword
         };
     }
 

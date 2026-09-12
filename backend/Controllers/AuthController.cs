@@ -23,6 +23,13 @@ public class AuthController : BaseApiController
         return Ok(result);
     }
 
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponseDto>> Refresh(CancellationToken cancellationToken)
+    {
+        var result = await _authService.RefreshTokenAsync(Request, Response, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {

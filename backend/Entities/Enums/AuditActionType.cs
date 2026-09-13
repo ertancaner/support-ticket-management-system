@@ -8,5 +8,8 @@ public enum AuditActionType
     TicketStatusChanged = 4,
     TicketSoftDeleted = 5,
     CommentSoftDeleted = 6,
-    RefreshTokenReuseDetected = 7
+    RefreshTokenReuseDetected = 7,
+    CategoryCreated = 8,
+    CategoryUpdated = 9,
+    CategorySoftDeleted = 10
 }

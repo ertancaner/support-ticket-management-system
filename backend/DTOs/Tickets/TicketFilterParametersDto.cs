@@ -9,6 +9,9 @@ public class TicketFilterParametersDto
     public Guid? CategoryId { get; set; }
     public TicketPriority? Priority { get; set; }
 
+    public string? SortBy { get; set; } = "CreatedAt";
+    public string? SortOrder { get; set; } = "desc";
+
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }

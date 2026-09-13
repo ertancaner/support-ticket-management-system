@@ -48,7 +48,14 @@ public class TicketRepository : ITicketRepository
         if (!string.IsNullOrWhiteSpace(parameters.Search))
         {
             var search = parameters.Search.Trim();
-            query = query.Where(t => EF.Functions.ILike(t.Title, $"%{search}%"));
+            if (_context.Database.ProviderName?.Contains("Npgsql") == true)
+            {
+                query = query.Where(t => EF.Functions.ILike(t.Title, $"%{search}%"));
+            }
+            else
+            {
+                query = query.Where(t => t.Title.ToLower().Contains(search.ToLower()));
+            }
         }
 
         // Status filter
@@ -71,8 +78,15 @@ public class TicketRepository : ITicketRepository
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Sorting by CreatedAt descending (newest first)
-        query = query.OrderByDescending(t => t.CreatedAt);
+        // Sorting: default CreatedAt descending, support flexible order
+        var isAscending = string.Equals(parameters.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        query = parameters.SortBy?.ToLowerInvariant() switch
+        {
+            "title" => isAscending ? query.OrderBy(t => t.Title) : query.OrderByDescending(t => t.Title),
+            "priority" => isAscending ? query.OrderBy(t => t.Priority) : query.OrderByDescending(t => t.Priority),
+            "status" => isAscending ? query.OrderBy(t => t.Status) : query.OrderByDescending(t => t.Status),
+            _ => isAscending ? query.OrderBy(t => t.CreatedAt) : query.OrderByDescending(t => t.CreatedAt)
+        };
 
         // Safe pagination boundaries
         var pageNumber = parameters.PageNumber < 1 ? 1 : parameters.PageNumber;

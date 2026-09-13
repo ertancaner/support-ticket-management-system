@@ -180,6 +180,8 @@ public class TicketService : ITicketService
 
         if (ticket.Status != dto.Status)
         {
+            ValidateStatusTransition(ticket.Status, dto.Status);
+
             var oldStatus = ticket.Status;
             ticket.Status = dto.Status;
             ticket.UpdatedAt = DateTime.UtcNow;
@@ -249,5 +251,33 @@ public class TicketService : ITicketService
                     CreatedAt = c.CreatedAt
                 }).ToList() ?? new List<CommentDto>()
         };
+    }
+
+    public static void ValidateStatusTransition(TicketStatus currentStatus, TicketStatus newStatus)
+    {
+        if (currentStatus == newStatus)
+        {
+            return;
+        }
+
+        var isValid = (currentStatus, newStatus) switch
+        {
+            // Standard forward progression
+            (TicketStatus.Open, TicketStatus.InProgress) => true,
+            (TicketStatus.InProgress, TicketStatus.Resolved) => true,
+            (TicketStatus.Resolved, TicketStatus.Closed) => true,
+
+            // Admin reopen capabilities
+            (TicketStatus.InProgress, TicketStatus.Open) => true,
+            (TicketStatus.Resolved, TicketStatus.Open) => true,
+            (TicketStatus.Closed, TicketStatus.Open) => true,
+
+            _ => false
+        };
+
+        if (!isValid)
+        {
+            throw new BusinessRuleException($"Invalid status transition from '{currentStatus}' to '{newStatus}'.");
+        }
     }
 }

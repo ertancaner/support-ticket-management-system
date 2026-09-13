@@ -114,9 +114,10 @@ public class UserService : IUserService
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 
+        var actionType = isActive ? AuditActionType.UserActivated : AuditActionType.UserDeactivated;
         await _auditService.LogAsync(
             adminId,
-            AuditActionType.UserStatusChanged,
+            actionType,
             nameof(User),
             user.Id.ToString(),
             $"User '{user.Username}' status changed to {(isActive ? "Active" : "Inactive")}.",
@@ -194,6 +195,14 @@ public class UserService : IUserService
         user.SessionVersion = Guid.NewGuid();
 
         await _userRepository.UpdateAsync(user, cancellationToken);
+
+        await _auditService.LogAsync(
+            userId,
+            AuditActionType.PasswordReset,
+            nameof(User),
+            user.Id.ToString(),
+            $"User '{user.Username}' voluntarily changed password. All active sessions invalidated.",
+            cancellationToken);
     }
 
     private static UserDto MapToDto(User user)

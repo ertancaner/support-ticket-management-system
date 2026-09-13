@@ -11,5 +11,7 @@ public enum AuditActionType
     RefreshTokenReuseDetected = 7,
     CategoryCreated = 8,
     CategoryUpdated = 9,
-    CategorySoftDeleted = 10
+    CategorySoftDeleted = 10,
+    UserActivated = 11,
+    UserDeactivated = 12
 }

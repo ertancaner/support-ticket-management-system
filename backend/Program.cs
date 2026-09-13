@@ -30,9 +30,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Repositories & Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITicketService, TicketService>();
 
 // JWT Authentication & Authorization
 builder.Services.AddJwtAuthentication(builder.Configuration);

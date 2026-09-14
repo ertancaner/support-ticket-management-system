@@ -8,6 +8,8 @@ public class ChangePasswordRequestDto
     public string CurrentPassword { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "New password is required.")]
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "New password must be at least 6 characters long.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "New password must be at least 8 characters long.")]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$",
+        ErrorMessage = "New password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.")]
     public string NewPassword { get; set; } = string.Empty;
 }

@@ -83,8 +83,23 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Attempt silent refresh
-        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        // Ensure CSRF token is present before calling refresh
+        let token = csrfTokenCache || getCookie('XSRF-TOKEN');
+        if (!token) {
+          try {
+            const csrfRes = await axios.get<{ csrfToken: string }>('/api/auth/csrf-token', { withCredentials: true });
+            token = csrfRes.data.csrfToken;
+            csrfTokenCache = token;
+          } catch {
+            // ignore
+          }
+        }
+
+        // Attempt silent refresh with CSRF header
+        await axios.post('/api/auth/refresh', {}, {
+          withCredentials: true,
+          headers: token ? { 'X-XSRF-TOKEN': token } : {}
+        });
         processQueue(null);
         return apiClient(originalRequest);
       } catch (refreshError) {

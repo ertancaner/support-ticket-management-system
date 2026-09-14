@@ -3,14 +3,17 @@ import React from 'react';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
+  message?: string;
   className?: string;
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'md',
   text,
+  message,
   className = ''
 }) => {
+  const displayText = message || text;
   const sizeClasses = {
     sm: 'w-4 h-4 border-2',
     md: 'w-8 h-8 border-3',
@@ -24,7 +27,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         role="status"
         aria-label="Loading"
       />
-      {text && <p className="text-sm font-medium text-slate-600">{text}</p>}
+      {displayText && <p className="text-sm font-medium text-slate-600">{displayText}</p>}
     </div>
   );
 };

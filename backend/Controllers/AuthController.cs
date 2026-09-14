@@ -26,6 +26,14 @@ public class AuthController : BaseApiController
     public ActionResult<CsrfTokenResponseDto> GetCsrfToken()
     {
         var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+
+        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
+        {
+            HttpOnly = false,
+            SameSite = SameSiteMode.Lax,
+            Secure = _env.IsProduction()
+        });
+
         return Ok(new CsrfTokenResponseDto { CsrfToken = tokens.RequestToken! });
     }
 

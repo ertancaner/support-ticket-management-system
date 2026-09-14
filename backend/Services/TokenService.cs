@@ -68,12 +68,13 @@ public class TokenService : ITokenService
 
     public void AppendAuthCookies(HttpResponse response, string accessToken, string refreshToken)
     {
-        var isProduction = _env.IsProduction();
+        var isSecure = response.HttpContext.Request.IsHttps || 
+                       string.Equals(response.HttpContext.Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
 
         var accessCookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = isProduction,
+            Secure = isSecure,
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             Path = "/"
@@ -82,7 +83,7 @@ public class TokenService : ITokenService
         var refreshCookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = isProduction,
+            Secure = isSecure,
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
             Path = "/"
@@ -94,12 +95,13 @@ public class TokenService : ITokenService
 
     public void ClearAuthCookies(HttpResponse response)
     {
-        var isProduction = _env.IsProduction();
+        var isSecure = response.HttpContext.Request.IsHttps || 
+                       string.Equals(response.HttpContext.Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
 
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = isProduction,
+            Secure = isSecure,
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(-1),
             Path = "/"

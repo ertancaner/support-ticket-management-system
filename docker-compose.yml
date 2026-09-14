@@ -26,7 +26,7 @@ services:
     container_name: ticket_system_backend
     restart: on-failure
     ports:
-      - "${PORT_BACKEND:-5000}:8080"
+      - "${PORT_BACKEND:-5001}:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080

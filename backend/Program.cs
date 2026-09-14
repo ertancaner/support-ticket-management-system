@@ -55,8 +55,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSwaggerDocumentation();
 
 // CORS Configuration
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-                     ?? new[] { "http://localhost:3000" };
+var corsOriginsEnv = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+var allowedOrigins = !string.IsNullOrWhiteSpace(corsOriginsEnv)
+    ? corsOriginsEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    : (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost:3000" });
 
 builder.Services.AddCors(options =>
 {

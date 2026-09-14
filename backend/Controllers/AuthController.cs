@@ -26,12 +26,13 @@ public class AuthController : BaseApiController
     public ActionResult<CsrfTokenResponseDto> GetCsrfToken()
     {
         var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+        var isSecure = Request.IsHttps || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
 
         Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
         {
             HttpOnly = false,
             SameSite = SameSiteMode.Lax,
-            Secure = _env.IsProduction(),
+            Secure = isSecure,
             Path = "/"
         });
 
@@ -44,13 +45,14 @@ public class AuthController : BaseApiController
         CancellationToken cancellationToken)
     {
         var result = await _authService.LoginAsync(dto, Response, cancellationToken);
+        var isSecure = Request.IsHttps || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
 
         var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
         Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
         {
             HttpOnly = false,
             SameSite = SameSiteMode.Lax,
-            Secure = _env.IsProduction(),
+            Secure = isSecure,
             Path = "/"
         });
 

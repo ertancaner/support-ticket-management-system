@@ -44,6 +44,7 @@ dist/
 dist-ssr/
 build/
 *.local
+*.tsbuildinfo
 
 # Docker
 .docker/

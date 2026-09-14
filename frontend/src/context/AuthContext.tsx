@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api/authApi';
+import { registerSessionExpiredHandler } from '@/api/client';
 import type { User } from '@/types/auth';
 
 interface AuthContextType {
@@ -17,10 +19,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
 
   const checkAuth = useCallback(async () => {
     try {
-      // First try to fetch the current user using existing access_token cookie
+      // First try to fetch current user using existing access_token cookie
       const authUser = await authApi.getCurrentUser();
       setUser({
         id: authUser.id,
@@ -49,8 +52,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
+    // Register global 401 unrecoverable session expiry callback
+    registerSessionExpiredHandler(() => {
+      setUser(null);
+      queryClient.clear();
+    });
+
     checkAuth();
-  }, [checkAuth]);
+  }, [checkAuth, queryClient]);
 
   const login = async (credentials: { username: string; password: string }) => {
     setIsLoading(true);
@@ -72,8 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       await authApi.logout();
+    } catch {
+      // Even if network fails, proceed with local logout
     } finally {
       setUser(null);
+      queryClient.clear();
       setIsLoading(false);
     }
   };

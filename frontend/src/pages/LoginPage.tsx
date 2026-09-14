@@ -1,17 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/common/Button';
 import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Ticket, Lock, User as UserIcon } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/tickets';
+
+  // If already authenticated and not loading, redirect to target or tickets
+  if (isAuthenticated && !isLoading) {
+    return <Navigate to={from} replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +33,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login({ username: username.trim(), password });
-      navigate('/tickets');
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
       setError(errorObj.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');

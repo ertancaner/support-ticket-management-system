@@ -16,8 +16,8 @@ export interface ResetPasswordRequest {
 }
 
 export interface ChangePasswordRequest {
-  currentPassword?: string;
-  newPassword?: string;
+  currentPassword: string;
+  newPassword: string;
 }
 
 export const usersApi = {

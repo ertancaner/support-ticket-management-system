@@ -32,8 +32,11 @@ public class CsrfProtectionMiddleware
     {
         var path = context.Request.Path;
 
-        // Skip CSRF validation for Swagger documentation UI
-        if (path.StartsWithSegments("/swagger"))
+        // Skip CSRF validation for Swagger documentation UI and public/session auth endpoints
+        if (path.StartsWithSegments("/swagger") ||
+            path.Equals("/api/auth/login", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/auth/refresh", StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;
@@ -47,7 +50,7 @@ public class CsrfProtectionMiddleware
             }
             catch (AntiforgeryValidationException ex)
             {
-                _logger.LogWarning(ex, "CSRF validation failed for {Method} {Path}", context.Request.Method, context.Request.Path);
+                _logger.LogWarning(ex, "CSRF validation failed for {Method} {Path}: {Message}", context.Request.Method, context.Request.Path, ex.Message);
 
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/problem+json";
@@ -56,7 +59,7 @@ public class CsrfProtectionMiddleware
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Title = "Forbidden",
-                    Detail = "A valid anti-forgery CSRF token must be provided in the 'X-XSRF-TOKEN' header.",
+                    Detail = $"Anti-forgery token validation failed: {ex.Message}",
                     Instance = context.Request.Path
                 };
 

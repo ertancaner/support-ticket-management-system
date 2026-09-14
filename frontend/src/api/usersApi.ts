@@ -3,7 +3,7 @@ import type { User } from '@/types/auth';
 
 export interface CreateUserRequest {
   username: string;
-  temporaryPassword?: string;
+  temporaryPassword: string;
   role: 'Admin' | 'User';
 }
 
@@ -12,7 +12,7 @@ export interface UpdateUserStatusRequest {
 }
 
 export interface ResetPasswordRequest {
-  newTemporaryPassword?: string;
+  newTemporaryPassword: string;
 }
 
 export interface ChangePasswordRequest {

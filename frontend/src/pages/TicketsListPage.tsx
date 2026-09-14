@@ -116,12 +116,14 @@ export const TicketsListPage: React.FC = () => {
             Tüm destek taleplerinizi filtreleyin, durumlarını izleyin ve yönetin
           </p>
         </div>
-        <Link to="/tickets/new">
-          <Button className="gap-2 w-full sm:w-auto">
-            <PlusCircle className="w-4 h-4" />
-            <span>Yeni Talep Oluştur</span>
-          </Button>
-        </Link>
+        {!isAdmin && (
+          <Link to="/tickets/new">
+            <Button className="gap-2 w-full sm:w-auto">
+              <PlusCircle className="w-4 h-4" />
+              <span>Yeni Talep Oluştur</span>
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filter Toolbar Card */}

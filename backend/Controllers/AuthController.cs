@@ -31,7 +31,8 @@ public class AuthController : BaseApiController
         {
             HttpOnly = false,
             SameSite = SameSiteMode.Lax,
-            Secure = _env.IsProduction()
+            Secure = _env.IsProduction(),
+            Path = "/"
         });
 
         return Ok(new CsrfTokenResponseDto { CsrfToken = tokens.RequestToken! });
@@ -43,6 +44,16 @@ public class AuthController : BaseApiController
         CancellationToken cancellationToken)
     {
         var result = await _authService.LoginAsync(dto, Response, cancellationToken);
+
+        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
+        {
+            HttpOnly = false,
+            SameSite = SameSiteMode.Lax,
+            Secure = _env.IsProduction(),
+            Path = "/"
+        });
+
         return Ok(result);
     }
 
@@ -57,6 +68,19 @@ public class AuthController : BaseApiController
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         await _authService.LogoutAsync(Request, Response, cancellationToken);
+
+        var cookieOptions = new CookieOptions
+        {
+            Path = "/",
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = _env.IsProduction(),
+            Expires = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+
+        Response.Cookies.Delete(".AspNetCore.Antiforgery", cookieOptions);
+        Response.Cookies.Delete("XSRF-TOKEN", new CookieOptions { Path = "/", HttpOnly = false, SameSite = SameSiteMode.Lax, Expires = DateTimeOffset.UtcNow.AddDays(-1) });
+
         return NoContent();
     }
 

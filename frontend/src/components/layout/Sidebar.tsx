@@ -31,10 +31,12 @@ export const Sidebar: React.FC = () => {
               <Ticket className="w-4 h-4 shrink-0" />
               <span>Destek Talepleri</span>
             </NavLink>
-            <NavLink to="/tickets/new" className={navLinkClasses}>
-              <PlusCircle className="w-4 h-4 shrink-0" />
-              <span>Yeni Talep Aç</span>
-            </NavLink>
+            {!isAdmin && (
+              <NavLink to="/tickets/new" className={navLinkClasses}>
+                <PlusCircle className="w-4 h-4 shrink-0" />
+                <span>Yeni Talep Aç</span>
+              </NavLink>
+            )}
           </nav>
         </div>
 

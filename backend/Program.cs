@@ -44,7 +44,11 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Controller & API Pipeline
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddProblemDetails();
 
 // Swagger Documentation
@@ -73,6 +77,7 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.Path = "/";
 });
 
 var app = builder.Build();
@@ -86,11 +91,11 @@ app.UseSwaggerDocumentation();
 app.UseRouting();
 app.UseCors("DefaultCorsPolicy");
 
-// CSRF Protection on state-changing requests (POST, PUT, PATCH, DELETE)
-app.UseMiddleware<CsrfProtectionMiddleware>();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+// CSRF Protection on state-changing requests (POST, PUT, PATCH, DELETE)
+app.UseMiddleware<CsrfProtectionMiddleware>();
 
 app.MapControllers();
 

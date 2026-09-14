@@ -6,6 +6,8 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   mustChangePassword?: boolean;
+  createdAt?: string;
+  updatedAt?: string | null;
 }
 
 export interface AuthResponse {

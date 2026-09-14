@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ticketsApi } from '@/api/ticketsApi';
 import { categoriesApi } from '@/api/categoriesApi';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/common/Button';
 import { ErrorAlert } from '@/components/common/ErrorAlert';
 import type { TicketPriority } from '@/types/ticket';
 import { ArrowLeft, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const NewTicketPage: React.FC = () => {
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  if (isAdmin) {
+    return <Navigate to="/tickets" replace />;
+  }
 
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');

@@ -9,22 +9,34 @@ export const authApi = {
   },
 
   login: async (credentials: { username: string; password: string }): Promise<AuthResponse> => {
-    // Fetch CSRF token before login request
-    await authApi.getCsrfToken();
     const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+    try {
+      await authApi.getCsrfToken();
+    } catch {
+      // ignore
+    }
     return response.data;
   },
 
   refresh: async (): Promise<AuthResponse> => {
-    await authApi.getCsrfToken();
     const response = await apiClient.post<AuthResponse>('/auth/refresh');
+    try {
+      await authApi.getCsrfToken();
+    } catch {
+      // ignore
+    }
     return response.data;
   },
 
   logout: async (): Promise<void> => {
-    await authApi.getCsrfToken();
-    await apiClient.post('/auth/logout');
-    setCsrfToken(null);
+    try {
+      await apiClient.post('/auth/logout');
+    } finally {
+      setCsrfToken(null);
+      if (typeof document !== 'undefined') {
+        document.cookie = 'XSRF-TOKEN=; Max-Age=0; path=/;';
+      }
+    }
   },
 
   getCurrentUser: async (): Promise<AuthResponse> => {

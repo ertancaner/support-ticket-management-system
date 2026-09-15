@@ -21,9 +21,6 @@ export const Navbar: React.FC = () => {
                 <span className="text-lg font-bold text-slate-900 tracking-tight">
                   Destek Talebi Sistemi
                 </span>
-                <span className="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-                  v1.0
-                </span>
               </div>
             </div>
 

@@ -21,12 +21,14 @@ import {
   MessageSquare,
   ChevronDown
 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export const TicketDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
+  const { showSuccess, showError } = useToast();
 
   const [commentContent, setCommentContent] = useState('');
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -53,6 +55,10 @@ export const TicketDetailPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ticket', id] });
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      showSuccess('Talep durumu başarıyla güncellendi.');
+    },
+    onError: (err: Error) => {
+      showError(err.message || 'Talep durumu güncellenirken bir hata oluştu.');
     }
   });
 
@@ -61,7 +67,12 @@ export const TicketDetailPage: React.FC = () => {
     mutationFn: () => ticketsApi.deleteTicket(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      showSuccess('Destek talebi başarıyla silindi.');
       navigate('/tickets');
+    },
+    onError: (err: Error) => {
+      showError(err.message || 'Destek talebi silinemedi.');
+      setIsDeleteTicketOpen(false);
     }
   });
 
@@ -85,6 +96,11 @@ export const TicketDetailPage: React.FC = () => {
       ticketsApi.deleteComment(id!, commentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ticket', id] });
+      setCommentToDelete(null);
+      showSuccess('Yorum başarıyla silindi.');
+    },
+    onError: (err: Error) => {
+      showError(err.message || 'Yorum silinemedi.');
       setCommentToDelete(null);
     }
   });

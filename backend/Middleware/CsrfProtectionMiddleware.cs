@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
@@ -44,8 +45,31 @@ public class CsrfProtectionMiddleware
 
         if (StateChangingMethods.Contains(context.Request.Method))
         {
+            if (!context.Request.Headers.TryGetValue("X-XSRF-TOKEN", out var headerToken) || string.IsNullOrWhiteSpace(headerToken))
+            {
+                _logger.LogWarning("CSRF validation failed: Missing X-XSRF-TOKEN header on {Method} {Path}", context.Request.Method, context.Request.Path);
+
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/problem+json";
+
+                var problemDetails = new ProblemDetails
+                {
+                    Status = StatusCodes.Status403Forbidden,
+                    Title = "Forbidden",
+                    Detail = "Anti-forgery token validation failed: The required antiforgery header value \"X-XSRF-TOKEN\" is not present.",
+                    Instance = context.Request.Path
+                };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true }));
+                return;
+            }
+
+            var originalUser = context.User;
             try
             {
+                // In Double-Submit Cookie pattern for SPAs, validate the cryptographic cookie-to-header token match
+                // using an unauthenticated principal clone so changes in auth state (login/logout/refresh) never cause claim mismatches.
+                context.User = new ClaimsPrincipal(new ClaimsIdentity());
                 await _antiforgery.ValidateRequestAsync(context);
             }
             catch (AntiforgeryValidationException ex)
@@ -63,14 +87,12 @@ public class CsrfProtectionMiddleware
                     Instance = context.Request.Path
                 };
 
-                var jsonOptions = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                };
-
-                await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails, jsonOptions));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true }));
                 return;
+            }
+            finally
+            {
+                context.User = originalUser;
             }
         }
 

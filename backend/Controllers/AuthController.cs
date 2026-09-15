@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,17 +26,7 @@ public class AuthController : BaseApiController
     [HttpGet("csrf-token")]
     public ActionResult<CsrfTokenResponseDto> GetCsrfToken()
     {
-        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
-        var isSecure = Request.IsHttps || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
-
-        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
-        {
-            HttpOnly = false,
-            SameSite = SameSiteMode.Lax,
-            Secure = isSecure,
-            Path = "/"
-        });
-
+        var tokens = GenerateAntiforgeryTokens();
         return Ok(new CsrfTokenResponseDto { CsrfToken = tokens.RequestToken! });
     }
 
@@ -45,17 +36,7 @@ public class AuthController : BaseApiController
         CancellationToken cancellationToken)
     {
         var result = await _authService.LoginAsync(dto, Response, cancellationToken);
-        var isSecure = Request.IsHttps || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
-
-        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
-        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
-        {
-            HttpOnly = false,
-            SameSite = SameSiteMode.Lax,
-            Secure = isSecure,
-            Path = "/"
-        });
-
+        GenerateAntiforgeryTokens();
         return Ok(result);
     }
 
@@ -63,7 +44,33 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<AuthResponseDto>> Refresh(CancellationToken cancellationToken)
     {
         var result = await _authService.RefreshTokenAsync(Request, Response, cancellationToken);
+        GenerateAntiforgeryTokens();
         return Ok(result);
+    }
+
+    private AntiforgeryTokenSet GenerateAntiforgeryTokens()
+    {
+        var originalUser = HttpContext.User;
+        try
+        {
+            HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+            var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+            var isSecure = Request.IsHttps || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
+
+            Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!, new CookieOptions
+            {
+                HttpOnly = false,
+                SameSite = SameSiteMode.Lax,
+                Secure = isSecure,
+                Path = "/"
+            });
+
+            return tokens;
+        }
+        finally
+        {
+            HttpContext.User = originalUser;
+        }
     }
 
     [HttpPost("logout")]

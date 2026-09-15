@@ -23,9 +23,11 @@ import {
   User as UserIcon,
   Tag
 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export const TicketsListPage: React.FC = () => {
   const { isAdmin } = useAuth();
+  const { showSuccess, showError } = useToast();
   const queryClient = useQueryClient();
 
   // Filters & Pagination State
@@ -75,6 +77,11 @@ export const TicketsListPage: React.FC = () => {
     mutationFn: (id: string) => ticketsApi.deleteTicket(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      setTicketToDelete(null);
+      showSuccess('Destek talebi başarıyla silindi.');
+    },
+    onError: (err: Error) => {
+      showError(err.message || 'Destek talebi silinirken bir hata oluştu.');
       setTicketToDelete(null);
     }
   });

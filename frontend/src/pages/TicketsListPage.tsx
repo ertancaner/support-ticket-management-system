@@ -413,17 +413,19 @@ export const TicketsListPage: React.FC = () => {
           <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1 mb-5">
             {hasActiveFilters
               ? 'Seçilen filtre kriterlerine uygun destek talebi bulunamadı. Filtreleri sıfırlamayı deneyebilirsiniz.'
-              : 'Henüz sisteme eklenmiş bir destek talebi bulunmamaktadır.'}
+              : isAdmin
+                ? 'Henüz sisteme eklenmiş bir destek talebi bulunmamaktadır.'
+                : 'Henüz oluşturduğunuz bir destek talebi bulunmamaktadır.'}
           </p>
           {hasActiveFilters ? (
             <Button variant="outline" onClick={handleResetFilters}>
               Filtreleri Temizle
             </Button>
-          ) : (
+          ) : !isAdmin ? (
             <Link to="/tickets/new">
               <Button>Yeni Talep Oluştur</Button>
             </Link>
-          )}
+          ) : null}
         </div>
       )}
 
